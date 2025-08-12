@@ -11,6 +11,8 @@ public class LoginForm extends JDialog {
     private JButton btnCancel;
     private JPanel loginPanel;
 
+    public User user;
+
     public LoginForm(JFrame parent) {
         super(parent);
         setTitle("Login");
@@ -19,6 +21,7 @@ public class LoginForm extends JDialog {
         setLocationRelativeTo(parent);
         setModal(true);
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
+
         btnOk.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -28,7 +31,13 @@ public class LoginForm extends JDialog {
                 user = getAuthenticatedUser(email, password);
 
                 if (user != null) {
-                    dispose();
+                    dispose(); // Close login dialog
+                    // Open dashboard after login
+                    SwingUtilities.invokeLater(() -> {
+                        DashboardForm dashboard = new DashboardForm(user);
+                        dashboard.setLocationRelativeTo(null);
+                        dashboard.setVisible(true);
+                    });
                 } else {
                     JOptionPane.showMessageDialog(LoginForm.this,
                             "Email or Password Invalid",
@@ -37,18 +46,18 @@ public class LoginForm extends JDialog {
                 }
             }
         });
+
         btnCancel.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 dispose();
+                System.exit(0); // Exit app on cancel
             }
         });
 
         setVisible(true);
-
     }
 
-    public User user;
     private User getAuthenticatedUser(String email, String password) {
         User user = null;
         final String DB_URL = "jdbc:mysql://localhost/MyStore?serverTimezone=UTC";
@@ -57,9 +66,7 @@ public class LoginForm extends JDialog {
 
         try {
             Connection conn = DriverManager.getConnection(DB_URL, USERNAME, PASSWORD);
-            // Connected to database successfully...
 
-            Statement stmt = conn.createStatement();
             String sql = "SELECT * FROM users WHERE email=? AND password=?";
             PreparedStatement preparedStatement = conn.prepareStatement(sql);
             preparedStatement.setString(1, email);
@@ -77,7 +84,7 @@ public class LoginForm extends JDialog {
                 user.password = resultSet.getString("password");
             }
 
-            stmt.close();
+            preparedStatement.close();
             conn.close();
 
         } catch (Exception e) {
@@ -87,16 +94,8 @@ public class LoginForm extends JDialog {
     }
 
     public static void main(String[] args) {
-        LoginForm loginForm = new LoginForm(null);
-        User user = loginForm.user;
-        if (user != null) {
-            System.out.println("Successful Authentication of: " + user.name);
-            System.out.println("       Email: " + user.email);
-            System.out.println("       Phone: " + user.phone);
-            System.out.println("       Name: " + user.name);
-            System.out.println("       Last Name: " + user.lastName);
-        } else {
-            System.out.println("Authentication canceled");
-        }
+        SwingUtilities.invokeLater(() -> {
+            new LoginForm(null);
+        });
     }
 }
